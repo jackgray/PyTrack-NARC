@@ -21,6 +21,8 @@ project = 'PyTrack'
 copyright = '2021, Upamanyu Ghose'
 author = 'Upamanyu Ghose'
 
+forked_by = 'Jack Gray'
+
 
 # -- General configuration ---------------------------------------------------
 

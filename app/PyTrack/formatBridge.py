@@ -9,6 +9,13 @@ from sqlalchemy import create_engine
 
 from PyTrack.etDataReader import read_edf, read_idf, read_tobii
 
+DEBUG=True
+def message(i):
+    if DEBUG == True: 
+        print("\n", i, "\n")
+    else:
+        pass
+
 def getColHeaders():
     """Function to return the column headers for the *PyTrack* base format data representation.
 
@@ -43,6 +50,7 @@ def toBase(et_type, filename, stim_list=None, start='START', stop=None, eye='B')
     """
 
     col_headers = getColHeaders()
+    print("\n\nColumn headers\n", col_headers, "\n\n")
 
     print("Converting file to Pandas CSV: ", filename.split("/")[-1])
 
@@ -57,7 +65,11 @@ def toBase(et_type, filename, stim_list=None, start='START', stop=None, eye='B')
 
     i = 0
     for d in data:
+        
+        # print("Data line: ", d)
+        
         temp_dict = dict.fromkeys(col_headers)
+        
 
         temp_dict['Timestamp'] = d['trackertime']
 
@@ -163,12 +175,14 @@ def convertToBase(filename, sensor_type, device, stim_list=None, start='START', 
     """
 
     if sensor_type == 'EyeTracker':
-        try:
-            return toBase(device, filename, stim_list, start=start, stop=stop, eye=eye)
-        except Exception as e:
-            print("Sorry " + sensor_type + " data format not supported! The following exception was thrown: \n")
-            print(e)
-            return
+        print("Attempting csv conversion")
+        toBase(device, filename, stim_list, start=start, stop=stop, eye=eye)
+        # try:
+        #     return toBase(device, filename, stim_list, start=start, stop=stop, eye=eye)
+        # except Exception as e:
+        #     print("Sorry " + sensor_type + " data format not supported! The following exception was thrown: \n")
+        #     print(e)
+        #     return
 
     else:
         print("Sorry " + sensor_type + " not supported!\n")
@@ -304,7 +318,10 @@ def generateCompatibleFormat(exp_path, device, stim_list_mode="NA", start='START
                     stim = np.loadtxt(data_path + "/stim/" + f.split(".")[0] + ".txt", dtype=str)
 
                 df = convertToBase(data_path + "/" + f, sensor_type='EyeTracker', device=device, stim_list=stim, start=start, stop=stop, eye=eye)
-                df.to_csv(csv_fname)
+                try:
+                    df.to_csv(csv_fname)
+                except:
+                    pass
 
         source_folder = data_path + "/csv_files/"
 

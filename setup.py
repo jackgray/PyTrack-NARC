@@ -4,14 +4,14 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="PyTrack-NTU",
+    name="PyTrack-NARC",
     version="1.1.0",
     author="Upamanyu Ghose, Arvind Srinivasan",
     author_email="titoghose@gmail.com, 96arvind@gmail.com",
-    description="An end-to-end python analysis toolkit for eye tracking",
+        description="An end-to-end python analysis toolkit for eye tracking",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/titoghose/PyTrack",
+    url="https://github.com/jackgray/PyTrack-NARC",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3.6",

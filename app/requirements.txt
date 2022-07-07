@@ -1,0 +1,8 @@
+numpy
+pingouin
+pandas
+scipy
+statsmodels
+matplotlib
+sqlalchemy
+

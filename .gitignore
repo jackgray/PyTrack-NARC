@@ -27,3 +27,7 @@ test_exp.py
 test_sa.py
 PyTrack_Sample_Data/
 PyTrack_Sample_Data/*
+MORE_Project
+*.asc
+*.csv
+*.edf
