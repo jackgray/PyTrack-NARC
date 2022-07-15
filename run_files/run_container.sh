@@ -1,4 +1,4 @@
-image_name=jackgray/pytrack_narc:v1.0.3
+image_name=jackgray/pytrack_narc:v1.0.6
 data_path=/home/jackgray/Code/PyTrack-NARC/MORE_Project
 # data_path=/home/narclab/EYETRACKING/MORE_Project
 container_data=/opt/MORE_Project

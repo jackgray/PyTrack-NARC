@@ -1,7 +1,0 @@
-image_name=jackgray/pytrack_ntu:v1.0.18
-data_path=/home/narclab/EYETRACKING/MORE_Project
-container_data=/opt/MORE_Project
-
-docker run \
---mount type=bind,source=${data_path},destination=${container_data} \
-$image_name

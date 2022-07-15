@@ -1,4 +1,4 @@
-image=pytrack_narc:v1.0.3
+image=pytrack_narc:v1.0.6
 
 docker build \
 -t jackgray/${image} \

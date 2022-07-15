@@ -506,7 +506,7 @@ def replace_missing(value, missing=0.0):
 		return float(value)
 
 
-def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
+def read_edf(filename, startstring='SCANNER START', stop=None, missing=0.0, debug=True, eye="B"):
 	"""Returns a list with dicts for every trial.
 
 	Parameters
@@ -555,7 +555,7 @@ def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
 	# check if the file exists
 	if os.path.isfile(filename):
 		# open file
-		print("opening file '%s'" % filename)
+		# print("\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nopening file '%s'" % filename)
 		f = open(filename, 'r')
 	# raise exception if the file does not exist
 	else:
@@ -600,11 +600,13 @@ def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
 		which_eye = 'L'
 	else:
 		which_eye = eye
-
+	
+	print("\n\nNEW FILE")
+	print(raw[0].split()[3])	# print name of file being processed
+	print("\n\n")
 	# loop through all lines
 	for line in raw:
 		# print("RAW line: ", line)
-
 		linelmnt = line.split()
 		# check if trial has already started
 		if started:
@@ -623,8 +625,8 @@ def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
 						trialend = True
 			# check for new start otherwise
 			else:
-				if linelmnt[0] == 'START' or (line == finalline):
-					print("Detected START signal")
+				if (startstring in line) or (line == finalline):
+					# print("Detected START signal")
 					started = True
 					trialend = True
 					fixation_flag = 0
@@ -664,7 +666,7 @@ def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
 
 		# check if the current line contains start message
 		else:
-			if "START" in line:
+			if startstring in line:
 				print("trialstart %d" % len(data))
 				# set started to True
 				started = True
@@ -681,18 +683,18 @@ def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
 			# message lines will start with MSG, followed by a tab, then a
 			# timestamp, a space, and finally the message, e.g.:
 			#	"MSG\t12345 something of importance here"
-			if linelmnt[0] == 'START':
-				print("Logging START time")
+			if linelmnt[0] == 'STOP' or linelmnt[0] == 'END':
+				trialend = True
+			
+			elif startstring in line:
 				t = int(linelmnt[1])
 				m = linelmnt[2:]
 				events['msg'].append([t,m])
     
 			elif linelmnt[0] == "MSG":
-				print("Found tag: MSG")
 				t = int(linelmnt[1])
 				m = linelmnt[3] # message
 				events['msg'].append([t,m])
-				print("elmnt: ", line)
 
 			# EDF event lines are constructed of 9 characters, followed by
 			# tab separated values; these values MAY CONTAIN SPACES, but
@@ -700,21 +702,18 @@ def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
 
 			# fixation start
 			elif linelmnt[0] == "SFIX":
-				print("Found tag: SFIX")
-				print("fixation start")
+				# print("fixation start")
 				l = linelmnt[2]
 				if len(events['Sfix']) > len(events['Efix']):
 					events['Sfix'][-1] = int(l)
 				else:
 					events['Sfix'].append(int(l))
 				fixation_flag = 1
-				print("line: ", line)
+				# print("line: ", line)
 
 			# fixation end
 			elif linelmnt[0] == "EFIX": # (and fixation_flag)
-				print("Found tag: EFIX")
-				print("Fixation end")
-				
+				# print("Fixation end")
 				st = int(linelmnt[2]) # starting time
 				et = int(linelmnt[3]) # ending time
 				dur = int(linelmnt[4]) # duration
@@ -722,23 +721,19 @@ def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
 				sy = replace_missing(linelmnt[6], missing=missing) # y position
 				events['Efix'].append([st, et, dur, sx, sy])
 				fixation_flag = 0
-				print("line: ", line)
 
 			# saccade start
 			elif linelmnt[0] == "SSACC":
-				print("Found flag SSACC")
-				print("Saccade start")
-				
+				# print("Saccade start")	
 				if len(events['Ssac']) > len(events['Esac']):
 					events['Ssac'][-1] = int(linelmnt[2])
 				else:
 					events['Ssac'].append(int(linelmnt[2]))
 				saccade_flag = 1
-				print("line: ", line)
 
 			# saccade end
 			elif linelmnt[0] == "ESACC":
-				print("saccade end")
+				# print("saccade end")
 				st = int(linelmnt[2]) # starting time
 				et = int(linelmnt[3]) # endint time
 				dur = int(linelmnt[4]) # duration
@@ -748,27 +743,31 @@ def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
 				ey = replace_missing(linelmnt[8], missing=missing) # end y position
 				events['Esac'].append([st, et, dur, sx, sy, ex, ey])
 				saccade_flag = 0
-				print("line: ", line)
+				# print("line: ", line)
 
 			# blink start
 			elif linelmnt[0] == "SBLINK":
-				print("blink start")
+				# print("blink start")
 				if len(events['Sblk']) > len(events['Eblk']):
 					events['Sblk'][-1] = int(l)
 				else:
 					events['Sblk'].append(int(linelmnt[2]))
 				blink_flag = 1
-				print("line: ", line)
+				# print("line: ", line)
 
 			# blink end
 			elif linelmnt[0] == "EBLINK": # ( and blink_flag )
-				print("blink end")
+				# print("blink end")
 				st = int(linelmnt[2])
 				et = int(linelmnt[3])
 				dur = int(linelmnt[4])
 				events['Eblk'].append([st,et,dur])
 				blink_flag = 0
-				print("line: ", line)
+				# print("line: ", line)
+
+			elif "PRESCALER" in linelmnt[0]:
+				continue
+			
 
 			# regular lines will contain tab separated values, beginning with
 			# a timestamp, follwed by the values that were asked to be stored
@@ -781,11 +780,15 @@ def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
 			else: 
 				try:
 					int(linelmnt[0])
-     
-					# extract data
-					x_l.append(float(linelmnt[1]))
-					y_l.append(float(linelmnt[2]))
-					size_l.append(float(linelmnt[3]))
+					try:    
+						x_l.append(float(linelmnt[1]))
+						y_l.append(float(linelmnt[2]))
+						size_l.append(float(linelmnt[3]))	
+					except:
+						x_l.append(linelmnt[1])
+						y_l.append(linelmnt[2])
+						size_l.append(linelmnt[3])
+								
 
 					if len(linelmnt) > 5:
 						try:
@@ -793,31 +796,120 @@ def read_edf(filename, start, stop=None, missing=0.0, debug=True, eye="B"):
 							y_r.append(float(linelmnt[5]))
 							size_r.append(float(linelmnt[6]))
 						except:
-							x_r.append(float(linelmnt[1]))
-							y_r.append(float(linelmnt[2]))
-							size_r.append(float(linelmnt[3]))
+							try:
+								x_r.append(float(linelmnt[1]))
+								y_r.append(float(linelmnt[2]))
+								size_r.append(float(linelmnt[3]))
+							except:
+								x_r.append(linelmnt[1])
+								y_r.append(linelmnt[2])
+								size_r.append(linelmnt[3])
+								
 
-					else:
+					try:
 						x_r.append(float(linelmnt[1]))
 						y_r.append(float(linelmnt[2]))
 						size_r.append(float(linelmnt[3]))
+					except:
+						x_r.append(linelmnt[1])
+						y_r.append(linelmnt[2])
+						size_r.append(linelmnt[3])
 
 					time.append(int(linelmnt[0])-starttime)
 					trackertime.append(int(linelmnt[0]))
 					last_time = int(linelmnt[0])
-     
-				except:
-					print("Could not parse line: ", line)
-					continue
+		
 					# for missed in linelmnt:
 					# 	events['unlogged'].append(missed)
 					# # pass
-					
+				except:
+					print("Could not parse line", line)
+					print("0:", linelmnt[0])
+					try:
+						print("1:", linelmnt[1])
+						# try:
+       					# 	print('el2', linelmnt[2])
+						# except:
+        				# 	pass
+						pass
+					except:
+						pass
+
 						
 
-				
+	print("\n\n\nD\nO\nN\nE\n\n\n")		
 
 	return data
+#
+
+#
+
+
+# # # # #
+
+
+# # # # #
+
+
+
+# # # # #
+
+
+
+
+# # # # #
+
+
+
+
+
+# # # # #
+
+
+# # # # #
+
+
+
+# # # # #
+
+
+
+# # # # #
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 def read_tobii(filename, start, stop=None, missing=0.0, debug=False):

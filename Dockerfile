@@ -1,7 +1,7 @@
 FROM python:3.10 AS build 
 USER root
 COPY /app /app
-# COPY /PyTrack /app/PyTrack
+# COPY PyTrack /app/PyTrack
 
 ARG DEBIAN_FRONTEND=noninteractive
 

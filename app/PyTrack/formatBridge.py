@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os
+from os import makedirs, listdir, path
 import json
 
 import numpy as np
@@ -23,7 +23,7 @@ def getColHeaders():
     return ["Timestamp", "StimulusName", "EventSource", "GazeLeftx", "GazeRightx", "GazeLefty", "GazeRighty", "PupilLeft", "PupilRight", "FixationSeq", "SaccadeSeq", "Blink", "GazeAOI"]
 
 
-def toBase(et_type, filename, stim_list=None, start='START', stop=None, eye='B'):
+def toBase(et_type, filename, stim_list=None, startstring='SCANNER START', stop=None, eye='B'):
     """Bridge function that converts SMI, Eyelink or Tobii raw eye tracking data files to the base CSV format that the framework uses.
 
     Parameters
@@ -37,7 +37,7 @@ def toBase(et_type, filename, stim_list=None, start='START', stop=None, eye='B')
     stim_list : list (str)
         Name of stimuli as a list of strings. If there are n trials/events found in the data, the length of stim_list should be n containing the names of stimuli for each trial/event.
 
-    start : str
+    startstring : str
         Marker for start of event in the .asc file. Default value is 'START'.
 
     stop : str
@@ -55,17 +55,20 @@ def toBase(et_type, filename, stim_list=None, start='START', stop=None, eye='B')
     print("Converting file to Pandas CSV: ", filename.split("/")[-1])
 
     if et_type == "smi":
-        data = read_idf(filename, start=start, stop=stop, missing=-1.0)
+        data = read_idf(filename, startstring=startstring, stop=stop, missing=-1.0)
     elif et_type == "eyelink":
-        data = read_edf(filename, start=start, stop=stop, missing=-1.0, eye=eye)
+        data = read_edf(filename, startstring=startstring, stop=stop, missing=-1.0, eye=eye)
     elif et_type == "tobii":
-        data = read_tobii(filename, start=start, stop=stop, missing=-1.0)
-
+        data = read_tobii(filename, startstring=startstring, stop=stop, missing=-1.0)
+    else:
+        print("Could not ascertain eyetracker type. Make sure variable et_type is defined as eyelink, smi, or tobii")
+        exit
+        
     df = pd.DataFrame(columns=col_headers)
 
     i = 0
     for d in data:
-        
+        print("\nREADING DATA...\n")
         # print("Data line: ", d)
         
         temp_dict = dict.fromkeys(col_headers)
@@ -92,12 +95,13 @@ def toBase(et_type, filename, stim_list=None, start='START', stop=None, eye='B')
 
 
         if et_type != "eyelink":
+            print("\n\n\nERROR\nERROR\nERROR\n\net_type variable not defined as 'eyelink'.")
             fix_cnt = 0
             sac_cnt = 0
             prev_end = 0
             for e in d['events']['Efix']:
-                ind_start = np.where(temp_dict['Timestamp'] == e[0])[0][0]
-                ind_end = np.where(temp_dict['Timestamp'] == e[1])[0][0]
+                ind_start = np.where(temp_dict['Timestamp'] == e[0])
+                ind_end = np.where(temp_dict['Timestamp'] == e[1])
                 temp_dict['FixationSeq'][ind_start : ind_end + 1] = fix_cnt
                 fix_cnt += 1
                 if prev_end != ind_start:
@@ -108,23 +112,48 @@ def toBase(et_type, filename, stim_list=None, start='START', stop=None, eye='B')
         else:
             cnt = 0
             for e in d['events']['Efix']:
-                ind_start = np.where(temp_dict['Timestamp'] == e[0])[0][0]
-                ind_end = np.where(temp_dict['Timestamp'] == e[1])[0][0]
-                temp_dict['FixationSeq'][ind_start : ind_end + 1] = cnt
+                print('Efix stuff')
+                print(e)
+                for i in e:
+                    print(i)
+                try:
+                    print(e[0])
+                except:
+                    print("no e")
+                    pass
+                try:
+                    print(e[0][0])
+                except:
+                    print("no ee")
+                    pass
+                try:
+                    for k,v in e.items():
+                        print(k, v)
+                except:
+                    print("no kv")
+                    pass
+                
+                ind_start = np.where(temp_dict['Timestamp'] == e[0])
+                print("ind_start: ", ind_start)
+                ind_end = np.where(temp_dict['Timestamp'] == e[1])
+                print("ind_end", ind_end)
+                print(temp_dict['FixationSeq'])
+                temp_dict['FixationSeq'][int(ind_start) : int(ind_end) + 1] = cnt
                 cnt += 1
 
             cnt = 0
             for e in d['events']['Esac']:
-                ind_start = np.where(temp_dict['Timestamp'] == e[0])[0][0]
-                ind_end = np.where(temp_dict['Timestamp'] == e[1])[0][0]
+                ind_start = np.where(temp_dict['Timestamp'] == e[0])
+                # print(np.where(temp_dict['Timestamp'] == e))
+                ind_end = np.where(temp_dict['Timestamp'] == e[1])
                 temp_dict['SaccadeSeq'][ind_start : ind_end + 1] = cnt
                 cnt += 1
 
         cnt = 0
         for e in d['events']['Eblk']:
             try:
-                ind_start = np.where(temp_dict['Timestamp'] == e[0])[0][0]
-                ind_end = np.where(temp_dict['Timestamp'] == e[1])[0][0]
+                ind_start = np.where(temp_dict['Timestamp'] == e[0])
+                ind_end = np.where(temp_dict['Timestamp'] == e[1])
                 temp_dict['Blink'][ind_start : ind_end + 1] = cnt
                 cnt += 1
             except Exception as exception:
@@ -132,7 +161,7 @@ def toBase(et_type, filename, stim_list=None, start='START', stop=None, eye='B')
 
         for m in d['events']['msg']:
             if 'Stim Key' in m[1]:
-                temp_dict['StimulusName'] = [m[1].strip("\n").split(":")[1].strip(" ")] * len(temp_dict['Timestamp'])
+                temp_dict['StimulusName'] = [m[1].strip().split(":")[1].strip()] * len(temp_dict['Timestamp'])
                 break
 
         df = df.append(pd.DataFrame.from_dict(temp_dict, orient='index').transpose(), ignore_index=True, sort=False)
@@ -145,7 +174,7 @@ def toBase(et_type, filename, stim_list=None, start='START', stop=None, eye='B')
     return df
 
 
-def convertToBase(filename, sensor_type, device, stim_list=None, start='START', stop=None, eye='B'):
+def convertToBase(filename, sensor_type, device, stim_list=None, startstring='SCANNER START', stop=None, eye='B'):
     """Master function that calls the different converter functions to convert to bas data format.
 
     Internally invoked by `generateCompatibleFormats <#formatBridge.generateCompatibleFormat>`_.
@@ -176,7 +205,7 @@ def convertToBase(filename, sensor_type, device, stim_list=None, start='START', 
 
     if sensor_type == 'EyeTracker':
         print("Attempting csv conversion")
-        toBase(device, filename, stim_list, start=start, stop=stop, eye=eye)
+        toBase(device, filename, stim_list, startstring=startstring, stop=stop, eye=eye)
         # try:
         #     return toBase(device, filename, stim_list, start=start, stop=stop, eye=eye)
         # except Exception as e:
@@ -207,7 +236,7 @@ def db_create(data_path, source_folder, database_name, dtype_dictionary=None, na
 
 	"""
 
-    all_files = os.listdir(source_folder)
+    all_files = listdir(source_folder)
 
     newlist = []
     for names in all_files:
@@ -260,7 +289,7 @@ def db_create(data_path, source_folder, database_name, dtype_dictionary=None, na
             j = df.index[-1] + 1
 
 
-def generateCompatibleFormat(exp_path, device, stim_list_mode="NA", start='START', stop=None, eye='B', reading_method="SQL"):
+def generateCompatibleFormat(exp_path, device, stim_list_mode="NA", startstring='SCANNER START', stop=None, eye='B', reading_method="SQL"):
     """Function to convert data into the base format before starting analysis and visualization.
 
     The function creates a directory called 'csv_files' inside the `Data` folder and stores the converted csv files in it. If `reading_method` is specified as 'SQL' then an SQL database is created inside the 'Data' folder but the user need not worry about it.
@@ -283,15 +312,14 @@ def generateCompatibleFormat(exp_path, device, stim_list_mode="NA", start='START
         'SQL' (default) reading method is faster but will need extra space. This affects the internal functioning of he framework and the user can leave it as is.
 
     """
-
     exp_path = exp_path.replace("\\", "/")
 
-    if os.path.isdir(exp_path):
+    if path.isdir(exp_path):
 
         exp_info = exp_path + "/" + exp_path.split("/")[-1] + ".json"
         data_path = exp_path + "/Data"
-        if not os.path.isdir(data_path + "/csv_files/"):
-            os.makedirs(data_path + "/csv_files/")
+        if not path.isdir(data_path + "/csv_files/"):
+            makedirs(data_path + "/csv_files/")
 
         stim = None
 
@@ -299,16 +327,17 @@ def generateCompatibleFormat(exp_path, device, stim_list_mode="NA", start='START
             stim = np.loadtxt(data_path + "/" + "stim_file.txt", dtype=str)
 
 
-        for f in os.listdir(data_path):
-            if os.path.isdir(data_path + "/" + f):
+        for f in listdir(data_path):
+            if path.isdir(path.join(data_path, f)):
                 continue
 
             if f.split(".")[-1] not in ["csv", "asc", "txt", "tsv"]:
                 continue
 
             csv_fname = data_path + "/csv_files/" + f.split(".")[0] + ".csv"
+            print("csv_fname: ", csv_fname)
 
-            if os.path.isfile(csv_fname):
+            if path.isfile(csv_fname):
                 print("CSV file already exists    : ", csv_fname)
 
             else:
@@ -317,13 +346,16 @@ def generateCompatibleFormat(exp_path, device, stim_list_mode="NA", start='START
                 if stim_list_mode == "diff":
                     stim = np.loadtxt(data_path + "/stim/" + f.split(".")[0] + ".txt", dtype=str)
 
-                df = convertToBase(data_path + "/" + f, sensor_type='EyeTracker', device=device, stim_list=stim, start=start, stop=stop, eye=eye)
+                df = convertToBase(data_path + "/" + f, sensor_type='EyeTracker', device=device, stim_list=stim, startstring=startstring, stop=stop, eye=eye)
+                print(df)
+                print("Converting df to csv. If there is no df above it is empty and convertToBase likely failed.")
                 try:
                     df.to_csv(csv_fname)
                 except:
+                    print("df.to_csv() failed (line 324)")
                     pass
 
-        source_folder = data_path + "/csv_files/"
+        source_folder = data_path + "/csv_files"
 
         with open(exp_info, "r") as json_f:
             json_data = json.load(json_f)
@@ -339,5 +371,5 @@ def generateCompatibleFormat(exp_path, device, stim_list_mode="NA", start='START
         if stim_list_mode != "NA":
             stim = np.loadtxt("stim_file.txt", dtype=str)
 
-        df = convertToBase(data_path, sensor_type='EyeTracker', device=device, stim_list=stim, start=start, stop=stop, eye=eye)
+        df = convertToBase(data_path, sensor_type='EyeTracker', device=device, stim_list=stim, startstring=startstring, stop=stop, eye=eye)
         df.to_csv(data_path.split(".")[0] + ".csv")
